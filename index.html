@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Candela — GCSE Revision</title>
+  <style>
+    :root {
+      --ink: #10223a;
+      --muted: #637083;
+      --line: #dfe5ec;
+      --paper: #f7f8fb;
+      --card: #ffffff;
+      --accent: #3157d5;
+      --good: #147a4a;
+      --warn: #a65a00;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    button, input { font: inherit; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+    header {
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      padding: 12px 0 22px;
+    }
+    .brand { font-weight: 800; font-size: 1.15rem; }
+    .pill { background:#eaf0ff; color:#2748b7; border-radius:999px; padding:8px 12px; font-size:.88rem; font-weight:700; }
+    .hero {
+      background: linear-gradient(135deg, #15294a, #3157d5);
+      color: white; border-radius: 24px; padding: 30px;
+      box-shadow: 0 14px 35px rgba(20,34,60,.14);
+    }
+    .hero h1 { margin:0 0 8px; font-size: clamp(2rem, 7vw, 3.5rem); line-height:1; }
+    .hero p { margin:0 0 22px; max-width:650px; opacity:.9; }
+    .primary {
+      border:0; border-radius:13px; padding:13px 18px; font-weight:800;
+      background:#fff; color:#1f3d9b; cursor:pointer;
+    }
+    .grid { display:grid; grid-template-columns: 1.15fr .85fr; gap:18px; margin-top:18px; }
+    .card {
+      background:var(--card); border:1px solid var(--line); border-radius:20px; padding:22px;
+      box-shadow: 0 4px 14px rgba(20,34,60,.05);
+    }
+    .card h2, .card h3 { margin-top:0; }
+    .muted { color:var(--muted); }
+    .topic-list { display:grid; gap:10px; }
+    .topic {
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      border:1px solid var(--line); border-radius:14px; padding:14px;
+      background:#fff;
+    }
+    .topic.locked { opacity:.45; }
+    .topic button {
+      border:0; background:#eef2ff; color:#2849b4; border-radius:10px; padding:9px 12px; font-weight:700; cursor:pointer;
+    }
+    .progress { height:9px; background:#e9edf3; border-radius:999px; overflow:hidden; }
+    .progress > div { height:100%; background:var(--accent); width:0%; transition:.3s; }
+    .stage { display:none; margin-top:18px; }
+    .stage.active { display:block; }
+    .stepper { display:flex; gap:7px; margin-bottom:16px; }
+    .dot { height:8px; flex:1; border-radius:999px; background:#dfe5ec; }
+    .dot.active { background:var(--accent); }
+    .question { font-size:1.25rem; font-weight:800; margin:10px 0 18px; }
+    .choices { display:grid; gap:10px; }
+    .choice {
+      text-align:left; border:1px solid var(--line); background:white; border-radius:13px;
+      padding:13px; cursor:pointer;
+    }
+    .choice.selected { border-color:var(--accent); background:#eef2ff; }
+    .controls { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .control { background:#f7f8fb; padding:14px; border-radius:14px; }
+    .control label { display:flex; justify-content:space-between; font-weight:700; margin-bottom:8px; }
+    input[type="range"] { width:100%; }
+    .sim {
+      min-height:210px; border-radius:18px; background:linear-gradient(#eaf4ff 0 60%, #c9d2dc 60% 67%, #3a424d 67%);
+      position:relative; overflow:hidden; margin:16px 0;
+    }
+    .car {
+      position:absolute; bottom:58px; left:9%; width:90px; height:38px; border-radius:12px 18px 8px 8px;
+      background:#f5c243; transition: transform .8s cubic-bezier(.2,.8,.2,1);
+    }
+    .car:before, .car:after {
+      content:""; position:absolute; width:18px; height:18px; border-radius:50%; background:#1e2530; bottom:-7px;
+    }
+    .car:before { left:12px; } .car:after { right:12px; }
+    .marker {
+      position:absolute; bottom:46px; width:3px; height:70px; background:#dc4d4d;
+      left:78%;
+    }
+    .resultbox {
+      border-left:4px solid var(--accent); padding:12px 14px; background:#f4f7ff;
+      border-radius:10px; margin-top:14px;
+    }
+    .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:18px; flex-wrap:wrap; }
+    .btn {
+      border:0; border-radius:12px; padding:11px 15px; font-weight:800; cursor:pointer;
+      background:var(--accent); color:#fff;
+    }
+    .btn.secondary { background:#eef1f5; color:var(--ink); }
+    .metric { font-size:2rem; font-weight:900; }
+    .mistakes { display:grid; gap:9px; margin-top:12px; }
+    .mistake { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); }
+    @media (max-width:760px) {
+      .grid, .controls { grid-template-columns:1fr; }
+      .wrap { padding:14px; }
+      .hero { padding:24px 20px; border-radius:18px; }
+      .car { width:72px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">CANDELA</div>
+      <div class="pill">GCSE prototype</div>
+    </header>
+
+    <section id="home">
+      <div class="hero">
+        <h1>Don’t just revise it.<br>Move it.</h1>
+        <p>Predict what happens, test the physics, explain it, then answer the exam question.</p>
+        <button class="primary" onclick="startSession()">Give me 10 minutes →</button>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Topics</h2>
+          <div class="topic-list">
+            <div class="topic">
+              <div><strong>Forces</strong><div class="muted">Stopping distance prototype</div></div>
+              <button onclick="startSession()">Revise</button>
+            </div>
+            <div class="topic locked"><div><strong>Energy</strong><div class="muted">Coming next</div></div><span>🔒</span></div>
+            <div class="topic locked"><div><strong>Electricity</strong><div class="muted">Coming next</div></div><span>🔒</span></div>
+            <div class="topic locked"><div><strong>Waves</strong><div class="muted">Coming next</div></div><span>🔒</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Your progress</h2>
+          <div class="metric" id="mastery">0%</div>
+          <div class="muted">Forces mastery</div>
+          <div class="progress" style="margin:12px 0 20px"><div id="progressBar"></div></div>
+          <h3>Lost marks</h3>
+          <div class="mistakes">
+            <div class="mistake"><span>Physics understanding</span><strong id="mPhysics">0</strong></div>
+            <div class="mistake"><span>Equation / calculation</span><strong id="mCalc">0</strong></div>
+            <div class="mistake"><span>Exam wording</span><strong id="mWording">0</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="session" class="stage">
+      <div class="card">
+        <div class="stepper">
+          <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div id="stageContent"></div>
+      </div>
+    </section>
+  </div>
+
+<script>
+const state = JSON.parse(localStorage.getItem("candelaState") || '{"attempts":0,"correct":0,"physics":0,"calc":0,"wording":0}');
+let step = 0;
+let prediction = null;
+
+function save() {
+  localStorage.setItem("candelaState", JSON.stringify(state));
+  renderProgress();
+}
+function renderProgress() {
+  const mastery = state.attempts ? Math.round(100 * state.correct / state.attempts) : 0;
+  document.getElementById("mastery").textContent = mastery + "%";
+  document.getElementById("progressBar").style.width = mastery + "%";
+  document.getElementById("mPhysics").textContent = state.physics;
+  document.getElementById("mCalc").textContent = state.calc;
+  document.getElementById("mWording").textContent = state.wording;
+}
+function startSession() {
+  document.getElementById("home").style.display = "none";
+  document.getElementById("session").classList.add("active");
+  step = 0; renderStep();
+}
+function updateDots() {
+  document.querySelectorAll(".dot").forEach((d,i)=>d.classList.toggle("active", i<=step));
+}
+function renderStep() {
+  updateDots();
+  const el = document.getElementById("stageContent");
+  if (step === 0) {
+    el.innerHTML = `
+      <div class="muted">1 · PREDICT</div>
+      <div class="question">A car doubles its speed. What happens to its braking distance?</div>
+      <div class="choices">
+        <button class="choice" onclick="pickPrediction(this,'same')">It stays the same</button>
+        <button class="choice" onclick="pickPrediction(this,'double')">It roughly doubles</button>
+        <button class="choice" onclick="pickPrediction(this,'four')">It increases by about four times</button>
+      </div>
+      <div class="actions"><button class="btn" onclick="nextPrediction()">Test it →</button></div>`;
+  } else if (step === 1) {
+    el.innerHTML = `
+      <div class="muted">2 · EXPERIMENT</div>
+      <div class="question">Change the speed and reaction time.</div>
+      <div class="controls">
+        <div class="control"><label>Speed <span id="speedVal">20 m/s</span></label><input id="speed" type="range" min="5" max="35" value="20" oninput="runSim(false)"></div>
+        <div class="control"><label>Reaction time <span id="reactVal">0.7 s</span></label><input id="reaction" type="range" min="0.3" max="1.5" value="0.7" step="0.1" oninput="runSim(false)"></div>
+      </div>
+      <div class="sim"><div class="car" id="car"></div><div class="marker"></div></div>
+      <div class="resultbox" id="simResult"></div>
+      <div class="actions"><button class="btn secondary" onclick="runSim(true)">Run</button><button class="btn" onclick="step=2;renderStep()">Explain →</button></div>`;
+    runSim(false);
+  } else if (step === 2) {
+    el.innerHTML = `
+      <div class="muted">3 · EXPLAIN</div>
+      <div class="question">Why does braking distance rise so sharply with speed?</div>
+      <p>Braking removes the car’s <strong>kinetic energy</strong>. Kinetic energy depends on the <strong>square of speed</strong>, so doubling speed gives the car four times as much kinetic energy.</p>
+      <div class="resultbox"><strong>Key relationship</strong><br>KE = ½mv²</div>
+      <p class="muted">That is why “twice as fast = twice the braking distance” is a common trap.</p>
+      <div class="actions"><button class="btn" onclick="step=3;renderStep()">Exam question →</button></div>`;
+  } else {
+    el.innerHTML = `
+      <div class="muted">4 · EXAM</div>
+      <div class="question">A car travels at 20 m/s. Its reaction time is 0.8 s. Calculate its thinking distance. <span class="muted">[2 marks]</span></div>
+      <input id="examAnswer" inputmode="decimal" placeholder="Answer in metres" style="width:100%;padding:14px;border:1px solid var(--line);border-radius:12px">
+      <div class="actions"><button class="btn" onclick="markExam()">Check answer</button></div>
+      <div id="examFeedback"></div>`;
+  }
+}
+function pickPrediction(btn, value) {
+  prediction = value;
+  document.querySelectorAll(".choice").forEach(b=>b.classList.remove("selected"));
+  btn.classList.add("selected");
+}
+function nextPrediction() {
+  state.attempts++;
+  if (prediction === "four") state.correct++; else state.physics++;
+  save(); step=1; renderStep();
+}
+function runSim(animate) {
+  const s = Number(document.getElementById("speed").value);
+  const r = Number(document.getElementById("reaction").value);
+  document.getElementById("speedVal").textContent = s+" m/s";
+  document.getElementById("reactVal").textContent = r.toFixed(1)+" s";
+  const thinking = s*r;
+  const braking = (s*s)/14;
+  const total = thinking+braking;
+  document.getElementById("simResult").innerHTML =
+    `<strong>Thinking:</strong> ${thinking.toFixed(1)} m &nbsp; <strong>Braking:</strong> ${braking.toFixed(1)} m &nbsp; <strong>Total:</strong> ${total.toFixed(1)} m`;
+  const px = Math.min(640, 120 + total*5);
+  const car = document.getElementById("car");
+  if (animate) { car.style.transform="translateX(0)"; requestAnimationFrame(()=>setTimeout(()=>car.style.transform=`translateX(${px}px)`,50)); }
+}
+function markExam() {
+  const answer = Number(document.getElementById("examAnswer").value);
+  const ok = Math.abs(answer-16) < 0.05;
+  state.attempts++;
+  if (ok) state.correct++; else state.calc++;
+  save();
+  document.getElementById("examFeedback").innerHTML = ok
+    ? `<div class="resultbox" style="border-color:var(--good)"><strong>2/2 ✓</strong><br>20 × 0.8 = 16 m.</div><div class="actions"><button class="btn" onclick="finish()">Finish session</button></div>`
+    : `<div class="resultbox" style="border-color:var(--warn)"><strong>Not quite.</strong><br>Thinking distance = speed × reaction time.<br>20 × 0.8 = <strong>16 m</strong>.</div><div class="actions"><button class="btn" onclick="finish()">Finish session</button></div>`;
+}
+function finish() {
+  document.getElementById("session").classList.remove("active");
+  document.getElementById("home").style.display = "block";
+  renderProgress();
+}
+renderProgress();
+</script>
+</body>
+</html>
