@@ -1,0 +1,75 @@
+name: Electricity clean field
+on:
+  push:
+    paths:
+      - '.github/workflows/electricity-clean-field.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace electricity visual
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text()
+
+          css = r'''
+          /* Electricity v4 — field + separate microscopic model */
+          .fieldviz{height:175px;margin:14px 0 10px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#f8fbff;box-shadow:0 6px 18px #14223c0d}
+          .fieldviz svg,.microviz svg{display:block;width:100%;height:100%}
+          .fv-halo{fill:none;stroke:#8fb2ff;stroke-width:25;stroke-linecap:round;stroke-linejoin:round;opacity:.42;filter:blur(3px);transition:opacity .18s,stroke-width .18s}
+          .fv-wire{fill:none;stroke:#3157d5;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+          .fv-resistor,.fv-meter{fill:#fff;stroke:#3157d5;stroke-width:3.5}
+          .fv-battery{stroke:#10223a;stroke-linecap:round}
+          .fv-label{font:800 11px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#64748b;letter-spacing:.04em}
+          .fv-value{font:900 17px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#10223a}
+          .fv-field-title{font:900 13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#3157d5}
+          .fv-field-sub{font:750 10px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#64748b}
+          .fv-field-track{fill:#dbe7ff}
+          .fv-field-fill{fill:#3157d5;transition:width .18s}
+          .microviz{height:165px;margin:10px 0;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff}
+          .micro-ion{fill:#cbd5e1}
+          .micro-electron{fill:#e04b3f}
+          .micro-field{stroke:#3157d5;stroke-width:3;stroke-linecap:round}
+          .micro-drift{stroke:#16844f;stroke-width:3;stroke-linecap:round;transition:x2 .18s}
+          .micro-scatter{fill:none;stroke:#d28a13;stroke-width:3;opacity:.08;transition:opacity .18s}
+          .micro-title{font:900 13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#10223a}
+          .micro-label{font:800 11px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#64748b}
+          .micro-field-label{font:900 12px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#3157d5}
+          .micro-drift-label{font:900 11px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#16844f}
+          .whyrows{display:grid;gap:6px;margin-top:10px}
+          .whyrow{display:grid;grid-template-columns:82px 1fr;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:11px;background:#fff}
+          .whyrow span{font-size:.64rem;font-weight:900;color:var(--muted);letter-spacing:.04em}
+          .whyrow strong{font-size:.78rem}
+          .electric-equation{display:flex;justify-content:center;align-items:center;margin-top:9px;padding:9px;border-radius:11px;background:#f4f7ff;font-weight:850;color:#2546b1}
+          .electric-note{margin-top:8px;color:var(--muted);font-size:.72rem;line-height:1.35}
+          @media(max-width:760px){.fieldviz{height:165px}.microviz{height:160px}.whyrow{grid-template-columns:72px 1fr;padding:7px 8px}}
+          '''
+          s = s.replace('</style>', css + '\n</style>', 1)
+
+          start = s.index("}else if(topic==='electricity'){")
+          end_marker = "}else{content.innerHTML=`<div class=\"muted\">2 · EXPERIMENT</div><div class=\"question\">${x.experimentTitle}"
+          end = s.index(end_marker, start)
+
+          block = r''' }else if(topic==='electricity'){content.innerHTML=`<div class="muted">2 · EXPERIMENT</div><div class="question">Change voltage and resistance. Watch the field, then look inside the metal.</div><div class="controls"><div class="control"><label>Voltage <span id="vv">12 V</span></label><input id="volt" type="range" min="1" max="24" value="12" oninput="simElectricity()"></div><div class="control"><label>Resistance <span id="rr">4 Ω</span></label><input id="resist" type="range" min="1" max="20" value="4" oninput="simElectricity()"></div></div><div class="fieldviz"><svg viewBox="0 0 420 175" aria-label="Simple circuit surrounded by a static electric-field glow"><path id="fieldHalo" class="fv-halo" d="M78 38 H342 Q368 38 368 64 V127 Q368 153 342 153 H78 Q52 153 52 127 V64 Q52 38 78 38 Z"/><path class="fv-wire" d="M78 38 H342 Q368 38 368 64 V127 Q368 153 342 153 H78 Q52 153 52 127 V64 Q52 38 78 38 Z"/><rect x="159" y="19" width="102" height="38" rx="9" fill="#f8fbff"/><rect class="fv-resistor" x="169" y="24" width="82" height="28" rx="7"/><text class="fv-label" x="210" y="35" text-anchor="middle">RESISTOR</text><text id="resistorRead" class="fv-value" x="210" y="50" text-anchor="middle">4 Ω</text><rect x="29" y="67" width="50" height="53" rx="8" fill="#f8fbff"/><line class="fv-battery" x1="40" y1="79" x2="68" y2="79" stroke-width="5"/><line class="fv-battery" x1="46" y1="102" x2="62" y2="102" stroke-width="3"/><text class="fv-label" x="88" y="82">BATTERY</text><text id="batteryRead" class="fv-value" x="88" y="101">12 V</text><circle class="fv-meter" cx="210" cy="153" r="20"/><text class="fv-value" x="210" y="159" text-anchor="middle">A</text><text class="fv-field-title" x="210" y="82" text-anchor="middle">ELECTRIC FIELD THROUGHOUT CIRCUIT</text><text class="fv-field-sub" x="210" y="98" text-anchor="middle">static field — not particles travelling round</text><rect class="fv-field-track" x="145" y="109" width="130" height="8" rx="4"/><rect id="fieldFill" class="fv-field-fill" x="145" y="109" width="65" height="8" rx="4"/><text id="fieldRead" class="fv-field-sub" x="210" y="130" text-anchor="middle">field strength: medium</text><text id="currentRead" class="fv-value" x="286" y="150">3.00 A</text></svg></div><div class="microviz"><svg viewBox="0 0 420 165" aria-label="Magnified metal showing lattice ions, random electron motion and tiny average drift"><defs><marker id="mfArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#3157d5"/></marker><marker id="mdArrow" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto"><path d="M7,0 L0,3.5 L7,7 Z" fill="#16844f"/></marker></defs><text class="micro-title" x="18" y="22">Inside the resistor</text><text class="micro-label" x="18" y="39">The metal already contains electrons everywhere.</text><line class="micro-field" x1="90" y1="57" x2="325" y2="57" marker-end="url(#mfArrow)"/><text class="micro-field-label" x="207" y="51" text-anchor="middle">electric field →</text><g id="ions"><circle class="micro-ion" cx="60" cy="88" r="9"/><circle class="micro-ion" cx="110" cy="88" r="9"/><circle class="micro-ion" cx="160" cy="88" r="9"/><circle class="micro-ion" cx="210" cy="88" r="9"/><circle class="micro-ion" cx="260" cy="88" r="9"/><circle class="micro-ion" cx="310" cy="88" r="9"/><circle class="micro-ion" cx="360" cy="88" r="9"/><circle class="micro-ion" cx="85" cy="122" r="9"/><circle class="micro-ion" cx="135" cy="122" r="9"/><circle class="micro-ion" cx="185" cy="122" r="9"/><circle class="micro-ion" cx="235" cy="122" r="9"/><circle class="micro-ion" cx="285" cy="122" r="9"/><circle class="micro-ion" cx="335" cy="122" r="9"/></g><g id="scatterGroup"><circle class="micro-scatter" cx="110" cy="88" r="14"/><circle class="micro-scatter" cx="210" cy="88" r="14"/><circle class="micro-scatter" cx="310" cy="88" r="14"/><circle class="micro-scatter" cx="135" cy="122" r="14"/><circle class="micro-scatter" cx="235" cy="122" r="14"/><circle class="micro-scatter" cx="335" cy="122" r="14"/></g><g id="electronGroup"><circle class="micro-electron" cx="73" cy="72" r="4"/><circle class="micro-electron" cx="128" cy="101" r="4"/><circle class="micro-electron" cx="177" cy="73" r="4"/><circle class="micro-electron" cx="228" cy="105" r="4"/><circle class="micro-electron" cx="278" cy="73" r="4"/><circle class="micro-electron" cx="326" cy="104" r="4"/><circle class="micro-electron" cx="378" cy="78" r="4"/></g><line id="driftArrow" class="micro-drift" x1="330" y1="148" x2="285" y2="148" marker-end="url(#mdArrow)"/><text id="driftRead" class="micro-drift-label" x="205" y="152" text-anchor="middle">tiny average electron drift ←</text></svg></div><div class="whyrows"><div class="whyrow"><span>VOLTAGE</span><strong id="voltageWhy">12 V → establishes a medium-strength field</strong></div><div class="whyrow"><span>RESISTANCE</span><strong id="resistanceWhy">4 Ω → relatively little scattering/opposition</strong></div><div class="whyrow"><span>CURRENT</span><strong id="currentWhy">3.00 A → 3.00 C passes a point each second</strong></div></div><div class="electric-equation" id="sr">12 V ÷ 4 Ω = 3.00 A</div><div class="electric-note">The red dots do not travel around the circuit. They only jitter inside this magnified sample of metal. The green arrow shows the much smaller <strong>average</strong> electron drift, opposite to the electric field and conventional current.</div><div class="actions"><button class="btn" onclick="step=2;renderTopic()">Explain →</button></div>`;simElectricity()'''
+
+          s = s[:start] + block + s[end:]
+
+          fstart = s.index('let electronTicker=null;function simElectricity(){')
+          fend = s.index('function simWaves(){', fstart)
+          funcs = r'''let electronTicker=null;function simElectricity(){let v=+volt.value,r=+resist.value,i=v/r;vv.textContent=v+' V';rr.textContent=r+' Ω';batteryRead.textContent=v+' V';resistorRead.textContent=r+' Ω';currentRead.textContent=i.toFixed(2)+' A';sr.textContent=v+' V ÷ '+r+' Ω = '+i.toFixed(2)+' A';let strength=v/24;fieldHalo.style.opacity=(.12+.58*strength).toFixed(2);fieldHalo.setAttribute('stroke-width',(18+16*strength).toFixed(1));fieldFill.setAttribute('width',(130*strength).toFixed(1));fieldRead.textContent='field strength: '+(v<8?'weak':v<17?'medium':'strong');let scat=Math.max(1,Math.ceil(r/3.4));document.querySelectorAll('.micro-scatter').forEach((c,k)=>c.style.opacity=k<scat?(.18+.55*r/20).toFixed(2):'.04');let drift=Math.min(1,Math.max(.06,i/6));driftArrow.setAttribute('x2',(330-75*drift).toFixed(1));voltageWhy.textContent=v+' V → establishes a '+(v<8?'weak':v<17?'medium':'strong')+' field';resistanceWhy.textContent=r+' Ω → '+(r<7?'little':r<14?'moderate':'strong')+' scattering/opposition';currentWhy.textContent=i.toFixed(2)+' A → '+i.toFixed(2)+' C passes a point each second';startElectronJiggle(r)}function startElectronJiggle(resistance){if(electronTicker)cancelAnimationFrame(electronTicker);let nodes=[...document.querySelectorAll('#electronGroup .micro-electron')],base=[[73,72],[128,101],[177,73],[228,105],[278,73],[326,104],[378,78]],amp=Math.max(.8,2.3-resistance/18),t0=performance.now();function tick(now){if(!nodes[0]||!document.body.contains(nodes[0])){electronTicker=null;return}let t=(now-t0)/1000;nodes.forEach((n,k)=>{let b=base[k],x=b[0]+Math.sin(t*(7.2+k*.4)+k)*amp+Math.sin(t*17+k)*amp*.35,y=b[1]+Math.cos(t*(8.1+k*.3)+k*.7)*amp*.9;n.setAttribute('cx',x.toFixed(2));n.setAttribute('cy',y.toFixed(2))});electronTicker=requestAnimationFrame(tick)}electronTicker=requestAnimationFrame(tick)}'''
+          s = s[:fstart] + funcs + s[fend:]
+
+          p.write_text(s)
+          PY
+
+          git config user.name "David"
+          git config user.email "5339514+pelld@users.noreply.github.com"
+          git add index.html
+          git commit -m "Simplify electricity field and microscopic drift visual"
+          git push
