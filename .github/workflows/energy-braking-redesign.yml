@@ -1,0 +1,46 @@
+name: Energy braking redesign
+on:
+  push:
+    paths:
+      - '.github/workflows/energy-braking-redesign.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace energy visual
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text()
+
+          css_new = r'''.energyviz{height:255px;background:linear-gradient(#edf5ff 0 70%,#d7e0ea 70% 73%,#4a5563 73%);box-shadow:inset 0 1px #fff9,0 7px 18px #14223c12}.energyviz .etrack{position:absolute;left:5%;right:5%;bottom:54px;height:6px;background:#222c39;border-radius:8px}.energyviz .brake-zone{position:absolute;left:27%;right:6%;bottom:61px;height:68px;background:#fff7e8;border:1px solid #e8c88c;border-radius:8px;overflow:hidden}.energyviz .brake-zone:before{content:"BRAKING ZONE · FIXED FORCE 50 N";position:absolute;left:8px;top:7px;font-size:.54rem;font-weight:900;color:#805b13;letter-spacing:.02em}.energyviz .tick{position:absolute;bottom:0;width:1px;height:21px;background:#a67b2d}.energyviz .tick span{position:absolute;bottom:23px;left:50%;transform:translateX(-50%);font-size:.52rem;font-weight:800;color:#6b7280;white-space:nowrap}.energyviz .brake-line{position:absolute;left:27%;bottom:54px;width:3px;height:87px;background:#c66e06;z-index:4}.energyviz .brake-line:before{content:"BRAKES ON";position:absolute;bottom:91px;left:50%;transform:translateX(-50%);background:#8a5b05;color:#fff;border-radius:999px;padding:4px 7px;font-size:.52rem;font-weight:900;white-space:nowrap}.energyviz .stop-line{position:absolute;bottom:54px;width:3px;height:87px;background:#17824f;z-index:5;transition:left .18s ease}.energyviz .stop-line:before{content:attr(data-label);position:absolute;bottom:91px;left:50%;transform:translateX(-50%);background:#126b41;color:#fff;border-radius:999px;padding:4px 7px;font-size:.52rem;font-weight:900;white-space:nowrap}.energyviz .distance-bar{position:absolute;left:27%;bottom:68px;height:14px;background:#3157d5;border-radius:0 8px 8px 0;opacity:.8;transform-origin:left center;transition:width .18s ease}.energyviz .trolley{position:absolute;left:7%;bottom:61px;width:58px;height:30px;background:#f5c243;border-radius:7px 10px 4px 4px;z-index:6}.energyviz .trolley:before,.energyviz .trolley:after{content:"";position:absolute;width:11px;height:11px;border-radius:50%;background:#1d2733;bottom:-6px}.energyviz .trolley:before{left:8px}.energyviz .trolley:after{right:8px}.energyviz .mass-label{position:absolute;inset:4px 0 auto;text-align:center;font-size:.58rem;font-weight:900;color:#6f5107}.energyviz .speed-arrow{position:absolute;left:7%;bottom:108px;height:3px;background:#3157d5;border-radius:3px;transform-origin:left center}.energyviz .speed-arrow:after{content:"";position:absolute;right:-1px;top:-4px;border-left:8px solid #3157d5;border-top:5px solid transparent;border-bottom:5px solid transparent}.energyviz .speed-label{position:absolute;left:7%;bottom:116px;font-size:.58rem;font-weight:900;color:#2546b1}.energyviz .ephase,.energyviz .eforce,.energyviz .eke{position:absolute;top:15px;border-radius:999px;padding:6px 9px;font-size:.66rem;font-weight:900;box-shadow:0 3px 9px #14223c18;background:#fff}.energyviz .ephase{left:6%;background:#10223a;color:#fff}.energyviz .eforce{left:50%;transform:translateX(-50%);color:#805b13}.energyviz .eke{right:6%}.energyviz .eoutcome{position:absolute;left:12px;right:12px;bottom:9px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:.72rem;font-weight:850;box-shadow:0 5px 14px #14223c18}.energy-metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.energy-metrics .dm{padding:9px 5px}'''
+          s, n = re.subn(r'\.energyviz\{height:255px.*?\.legend\{display:grid;grid-template-columns:repeat\(2,1fr\);gap:7px\}', css_new, s, count=1)
+          assert n == 1, f'energy CSS match count {n}'
+
+          html_new = r'''}else if(topic==='energy'){content.innerHTML=`<div class="muted">2 · EXPERIMENT</div><div class="question">${x.experimentTitle}</div><div class="controls"><div class="control"><label>Mass <span id="mv">2 kg</span></label><input id="mass" type="range" min="1" max="10" value="2" oninput="simEnergy()"></div><div class="control"><label>Speed <span id="ev">3 m/s</span></label><input id="espeed" type="range" min="1" max="12" value="3" oninput="simEnergy()"></div></div><div class="sim energyviz" id="energyviz"><div class="ephase" id="ephase">Ready</div><div class="eforce">Brakes 50 N</div><div class="eke" id="kechip">9.0 J</div><div class="brake-zone" id="brakeZone"><div class="tick" style="left:0%"><span>0 m</span></div><div class="tick" style="left:20%"><span>3</span></div><div class="tick" style="left:40%"><span>6</span></div><div class="tick" style="left:60%"><span>9</span></div><div class="tick" style="left:80%"><span>12</span></div><div class="tick" style="left:100%"><span>15 m</span></div></div><div class="distance-bar" id="distanceBar"></div><div class="brake-line"></div><div class="stop-line" id="stopLine" data-label="STOP 0.2 m"></div><div class="etrack"></div><div class="speed-label" id="speedLabel">3 m/s</div><div class="speed-arrow" id="speedArrow"></div><div class="trolley" id="etrolley"><div class="mass-label" id="massLabel">2 kg</div></div><div class="eoutcome" id="eoutcome"></div></div><div class="result" id="sr"></div><div class="actions"><button class="btn secondary" onclick="animateEnergy()">Animate</button><button class="btn" onclick="step=2;renderTopic()">Explain →</button></div>`;simEnergy()}'''
+          s, n = re.subn(r"\}else if\(topic==='energy'\)\{content\.innerHTML=`.*?`;simEnergy\(\)\}", html_new, s, count=1)
+          assert n == 1, f'energy HTML match count {n}'
+
+          js_new = r'''function energyModel(){let m=+mass.value,v=+espeed.value,F=50,ke=.5*m*v*v,d=ke/F,maxD=15,zoneLeft=.27,zoneRight=.06,zoneFrac=1-zoneLeft-zoneRight,zonePx=energyviz.clientWidth*zoneFrac,stopPx=energyviz.clientWidth*zoneLeft+zonePx*Math.min(1,d/maxD),cartStart=energyviz.clientWidth*.07,brakePx=energyviz.clientWidth*zoneLeft,travelToBrake=brakePx-cartStart;return{m,v,F,ke,d,maxD,zonePx,stopPx,cartStart,brakePx,travelToBrake}}function simEnergy(){let E=energyModel();mv.textContent=E.m+' kg';ev.textContent=E.v+' m/s';kechip.textContent=E.ke.toFixed(1)+' J';massLabel.textContent=E.m+' kg';speedLabel.textContent=E.v+' m/s';let arrow=Math.min(115,26+E.v*7);speedArrow.style.width=arrow+'px';let dFrac=Math.min(1,E.d/E.maxD);distanceBar.style.width=(E.zonePx*dFrac)+'px';stopLine.style.left=E.stopPx+'px';stopLine.dataset.label='STOP '+E.d.toFixed(2)+' m';etrolley.style.transition='none';etrolley.style.transform='translateX(0)';ephase.textContent='Ready';eoutcome.textContent='The stop point updates immediately. Double speed → about 4× the stopping distance; double mass → 2×.';sr.innerHTML='<div class="energy-metrics"><div class="dm"><span>Kinetic energy</span><strong>'+E.ke.toFixed(1)+' J</strong></div><div class="dm"><span>Stopping distance</span><strong>'+E.d.toFixed(2)+' m</strong></div></div>'}function animateEnergy(){let E=energyModel(),scale=.62;ephase.textContent='MOVING';etrolley.style.transition='none';etrolley.style.transform='translateX(0)';let cruiseMs=Math.max(220,(4/E.v)*1000*scale);requestAnimationFrame(()=>{etrolley.style.transition='transform '+cruiseMs+'ms linear';etrolley.style.transform='translateX('+E.travelToBrake+'px)'});setTimeout(()=>{ephase.textContent='BRAKING';let a=E.F/E.m,tStop=E.v/a,duration=Math.max(280,tStop*1000*scale),start=performance.now(),startX=E.travelToBrake;function frame(now){let elapsed=Math.min(duration,now-start),t=elapsed/(1000*scale),d=Math.min(E.d,E.v*t-.5*a*t*t),px=E.zonePx*(d/E.maxD);etrolley.style.transition='none';etrolley.style.transform='translateX('+(startX+px)+'px)';if(elapsed<duration){requestAnimationFrame(frame)}else{ephase.textContent='STOPPED';eoutcome.textContent='Stopped after '+E.d.toFixed(2)+' m. The fixed 50 N braking force has removed '+E.ke.toFixed(1)+' J of kinetic energy.'}}requestAnimationFrame(frame)},cruiseMs)}function simElectricity'''
+          s, n = re.subn(r'function energyModel\(\).*?function simElectricity', js_new, s, count=1)
+          assert n == 1, f'energy JS match count {n}'
+
+          s = s.replace("experimentTitle:'Change mass and speed. Animate the impact.'", "experimentTitle:'Change mass and speed. Watch where the trolley stops.'")
+          s = s.replace("In the animation, the crash pad compresses much more when speed increases than when mass alone increases.", "With a fixed braking force, the work done by the brakes equals the kinetic energy removed. Doubling mass doubles the stopping distance; doubling speed makes it four times longer.")
+
+          p.write_text(s)
+          PY
+      - name: Commit redesign
+        run: |
+          git config user.name "David"
+          git config user.email "5339514+pelld@users.noreply.github.com"
+          rm -f .github/workflows/energy-pad-fix.yml .github/workflows/energy-braking-redesign.yml
+          git add -A
+          git commit -m "Replace energy crash pad with braking-distance experiment"
+          git push
