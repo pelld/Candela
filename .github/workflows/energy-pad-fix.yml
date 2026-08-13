@@ -1,0 +1,47 @@
+name: Energy pad fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch energy visual
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          s = path.read_text()
+
+          s = s.replace(
+              '.energyviz .pad{position:absolute;right:calc(7% + 22px);bottom:56px;width:24px;height:78px;background:#f1a43c;border-radius:10px 0 0 10px;transform-origin:right center}.energyviz .ghost{position:absolute;right:calc(7% + 22px);bottom:56px;height:78px;border-radius:10px 0 0 10px;background:#f8c06d66;border:2px dashed #c66e06}.energyviz .burst',
+              '.energyviz .pad,.energyviz .ghost{position:absolute;right:calc(7% + 22px);bottom:56px;width:72px;height:78px;border-radius:12px 0 0 12px;transform-origin:right center}.energyviz .pad{background:#f1a43c;z-index:3}.energyviz .ghost{background:transparent;border:2px dashed #c66e06;opacity:0;z-index:2;transition:opacity .2s}.energyviz .burst'
+          )
+          s = s.replace(
+              '<div class="impactchip" id="impactchip">Pad compression</div>',
+              '<div class="impactchip" id="impactchip">Crash pad</div>'
+          )
+
+          replacement = '''function energyModel(){let m=+mass.value,v=+espeed.value,ke=.5*m*v*v,maxKE=.5*10*12*12,compression=Math.min(.78,(ke/maxKE)*.78),travel=energyviz.clientWidth*.58,cartW=Math.min(82,44+m*3);return{m,v,ke,compression,travel,cartW}}function simEnergy(){let E=energyModel();mv.textContent=E.m+' kg';ev.textContent=E.v+' m/s';kechip.textContent=E.ke.toFixed(1)+' J';impactchip.textContent='Crash pad';cartWeight.textContent=E.m+' kg';ecart.style.width=E.cartW+'px';ecart.style.height=(20+E.m*1.2)+'px';ecart.style.transition='none';ecart.style.transform='translateX(0)';impactPad.style.transition='none';impactPad.style.transform='scaleX(1)';ghostPad.style.opacity='0';burst.classList.remove('show');ephase.textContent='Ready';sr.innerHTML='<div class="legend"><div class="dm"><span>Kinetic energy</span><strong>'+E.ke.toFixed(1)+' J</strong></div><div class="dm"><span>Relationship</span><strong>KE ∝ mv²</strong></div></div>';eoutcome.className='outcome';eoutcome.textContent='Animate the cart. More kinetic energy makes the same crash pad deform further.'}function animateEnergy(){let E=energyModel();burst.classList.remove('show');ghostPad.style.opacity='0';impactPad.style.transition='none';impactPad.style.transform='scaleX(1)';ecart.style.transition='none';ecart.style.transform='translateX(0)';ephase.textContent='MOVING';eoutcome.className='outcome';eoutcome.textContent='The cart moves toward the same crash pad.';let moveMs=Math.max(260,1250-E.v*65);requestAnimationFrame(()=>{ecart.style.transition='transform '+moveMs+'ms linear';ecart.style.transform='translateX('+E.travel+'px)'});setTimeout(()=>{ephase.textContent='IMPACT';burst.classList.add('show');eoutcome.textContent='Impact: the pad absorbs the cart’s kinetic energy.';let squash=Math.max(.22,1-E.compression);impactPad.style.transition='transform 420ms ease-out';impactPad.style.transform='scaleX('+squash+')';setTimeout(()=>{ghostPad.style.opacity='.7';ephase.textContent='STOPPED';impactchip.textContent='Original pad outline';eoutcome.className='outcome safe';eoutcome.textContent='The dashed outline shows the pad before impact. Increase speed and the deformation grows much faster than when mass alone increases.'},430)},moveMs)}function simElectricity'''
+          s, n = re.subn(r'function energyModel\(\).*?function simElectricity', replacement, s, count=1)
+          if n != 1:
+              raise SystemExit('Energy function block not found')
+
+          path.write_text(s)
+      - name: Commit patch and remove one-off workflow
+        run: |
+          rm .github/workflows/energy-pad-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Simplify energy crash pad animation"
+          git push
