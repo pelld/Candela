@@ -1,0 +1,79 @@
+name: Electricity relationship model
+
+on:
+  push:
+    paths:
+      - '.github/workflows/electricity-why.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Improve electricity model
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text()
+
+          # 1. Add mobile-friendly explanatory styling.
+          css = r'''
+          .elecviz{height:235px;background:#f8fbff;box-shadow:inset 0 1px #fff9,0 7px 18px #14223c12}
+          .elecviz svg{display:block;width:100%;height:100%}
+          .e-wire{fill:none;stroke:#3157d5;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+          .e-component-bg{fill:#f8fbff}
+          .e-resistor{fill:#fff;stroke:#3157d5;stroke-width:4}
+          .e-meter{fill:#fff;stroke:#3157d5;stroke-width:4}
+          .e-battery-line{stroke:#10223a;stroke-linecap:round}
+          .e-carrier{fill:#e04b3f;filter:drop-shadow(0 1px 1px #0002)}
+          .e-field{stroke:#7899ff;stroke-linecap:round;transition:opacity .18s,stroke-width .18s}
+          .e-collision{fill:#d28a13;opacity:.12;transition:opacity .18s}
+          .e-label{font:800 12px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#64748b;letter-spacing:.04em}
+          .e-value{font:900 17px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#10223a}
+          .e-current{font:900 25px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#10223a}
+          .e-sub{font:750 11px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#64748b}
+          .electric-chain{display:grid;gap:6px;margin-top:10px}
+          .electric-chain-row{display:grid;grid-template-columns:82px 1fr;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:.75rem}
+          .electric-chain-row span{font-size:.64rem;font-weight:900;color:var(--muted);letter-spacing:.04em}
+          .electric-chain-row strong{font-size:.78rem}
+          .electric-equation{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:9px;padding:9px;border-radius:11px;background:#f4f7ff;font-weight:850;color:#2546b1}
+          .electric-note{margin-top:8px;color:var(--muted);font-size:.72rem;line-height:1.35}
+          '''
+          s = s.replace('</style>', css + '</style>', 1)
+
+          # 2. Make the explanation itself more physical, not just algebraic.
+          old_explain = "explain:'Current is the rate of flow of charge around a complete circuit. Increasing <strong>voltage</strong> increases the current; increasing <strong>resistance</strong> reduces it. The same current flows all around this simple series circuit.'"
+          new_explain = "explain:'<strong>Voltage</strong> is the electrical push: energy transferred per coulomb of charge. That push creates an electric field around the complete circuit. <strong>Resistance</strong> opposes the drift of charge because moving electrons interact with the material. <strong>Current</strong> is the amount of charge passing a point each second. For an ohmic resistor at constant temperature, a stronger push gives more current, while more opposition gives less.'"
+          if old_explain in s:
+              s = s.replace(old_explain, new_explain, 1)
+
+          # 3. Replace the Electricity experiment markup.
+          branch_pattern = r"}else if\(topic==='electricity'\)\{content\.innerHTML=`.*?`;simElectricity\(\)\}else\{"
+          branch = r''' }else if(topic==='electricity'){content.innerHTML=`<div class="muted">2 · EXPERIMENT</div><div class="question">Change voltage and resistance. Watch what changes — and why.</div><div class="controls"><div class="control"><label>Voltage <span id="vv">12 V</span></label><input id="volt" type="range" min="1" max="24" value="12" oninput="simElectricity()"></div><div class="control"><label>Resistance <span id="rr">4 Ω</span></label><input id="resist" type="range" min="1" max="20" value="4" oninput="simElectricity()"></div></div><div class="sim elecviz" id="elecviz"><svg id="circuitSvg" viewBox="0 0 420 235" aria-label="Closed circuit showing conventional charge flow, electrical push and resistance"><defs><marker id="fieldArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#7899ff"/></marker></defs><path id="circuitPath" class="e-wire" d="M76 48 H344 Q370 48 370 74 V154 Q370 180 344 180 H76 Q50 180 50 154 V74 Q50 48 76 48 Z"/><line class="e-field" x1="88" y1="48" x2="128" y2="48" marker-end="url(#fieldArrow)"/><line class="e-field" x1="292" y1="48" x2="332" y2="48" marker-end="url(#fieldArrow)"/><line class="e-field" x1="370" y1="88" x2="370" y2="126" marker-end="url(#fieldArrow)"/><line class="e-field" x1="332" y1="180" x2="292" y2="180" marker-end="url(#fieldArrow)"/><line class="e-field" x1="128" y1="180" x2="88" y2="180" marker-end="url(#fieldArrow)"/><rect class="e-component-bg" x="151" y="25" width="118" height="47" rx="10"/><rect class="e-resistor" x="159" y="31" width="102" height="34" rx="8"/><text class="e-label" x="210" y="44" text-anchor="middle">RESISTOR</text><text id="resistorRead" class="e-value" x="210" y="60" text-anchor="middle">4 Ω</text><g id="collisionGroup"><circle class="e-collision" cx="170" cy="48" r="4"/><circle class="e-collision" cx="180" cy="48" r="4"/><circle class="e-collision" cx="190" cy="48" r="4"/><circle class="e-collision" cx="200" cy="48" r="4"/><circle class="e-collision" cx="210" cy="48" r="4"/><circle class="e-collision" cx="220" cy="48" r="4"/><circle class="e-collision" cx="230" cy="48" r="4"/><circle class="e-collision" cx="240" cy="48" r="4"/><circle class="e-collision" cx="250" cy="48" r="4"/><circle class="e-collision" cx="255" cy="48" r="4"/></g><rect class="e-component-bg" x="28" y="82" width="48" height="64"/><line class="e-battery-line" x1="40" y1="96" x2="68" y2="96" stroke-width="5"/><line class="e-battery-line" x1="46" y1="122" x2="62" y2="122" stroke-width="3"/><text class="e-label" x="87" y="96">BATTERY</text><text id="batteryRead" class="e-value" x="87" y="116">12 V</text><text class="e-sub" x="87" y="132">electrical push</text><rect class="e-component-bg" x="174" y="154" width="72" height="52" rx="10"/><circle class="e-meter" cx="210" cy="180" r="23"/><text class="e-value" x="210" y="186" text-anchor="middle">A</text><text class="e-label" x="210" y="99" text-anchor="middle">CURRENT</text><text id="currentRead" class="e-current" x="210" y="127" text-anchor="middle">3.00 A</text><text id="chargeRateRead" class="e-sub" x="210" y="145" text-anchor="middle">3.00 C each second</text>${Array.from({length:16},(_,i)=>`<circle class="e-carrier" r="4.5"><animateMotion class="chargeMotion" dur="2.4s" begin="-${(i*.15).toFixed(2)}s" repeatCount="indefinite"><mpath href="#circuitPath"/></animateMotion></circle>`).join('')}</svg></div><div class="electric-chain"><div class="electric-chain-row"><span>VOLTAGE</span><strong id="voltageWhy">12 V — electrical push / energy per coulomb</strong></div><div class="electric-chain-row"><span>RESISTANCE</span><strong id="resistanceWhy">4 Ω — opposition to charge drift</strong></div><div class="electric-chain-row"><span>CURRENT</span><strong id="currentWhy">3.00 A — 3.00 C passes each second</strong></div></div><div class="electric-equation" id="sr">12 V ÷ 4 Ω = 3.00 A</div><div class="electric-note">Dots model <strong>conventional charge flow</strong>. The wire is already full of charge carriers. In a metal, electrons drift slowly in the opposite direction to conventional current.</div><div class="actions"><button class="btn" onclick="step=2;renderTopic()">Explain →</button></div>`;simElectricity()}else{'''
+          s, n = re.subn(branch_pattern, branch, s, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit(f'Electricity branch replacement failed: {n}')
+
+          # 4. Update the simulation: voltage strengthens the field; resistance adds collision markers; current sets drift rate.
+          fn_pattern = r"function simElectricity\(\)\{.*?\}function simWaves"
+          fn = r'''function simElectricity(){let v=+volt.value,r=+resist.value,i=v/r;vv.textContent=v+' V';rr.textContent=r+' Ω';batteryRead.textContent=v+' V';resistorRead.textContent=r+' Ω';currentRead.textContent=i.toFixed(2)+' A';chargeRateRead.textContent=i.toFixed(2)+' C each second';voltageWhy.textContent=v+' V — '+(v<8?'gentle':v<17?'moderate':'strong')+' electrical push';resistanceWhy.textContent=r+' Ω — '+(r<7?'low':r<14?'moderate':'high')+' opposition to drift';currentWhy.textContent=i.toFixed(2)+' A — '+i.toFixed(2)+' C passes each second';sr.textContent=v+' V ÷ '+r+' Ω = '+i.toFixed(2)+' A';let push=v/24;document.querySelectorAll('.e-field').forEach(a=>{a.style.opacity=(.18+.82*push).toFixed(2);a.setAttribute('stroke-width',(1.5+2.8*push).toFixed(1))});let visible=Math.max(1,Math.ceil(r/2));document.querySelectorAll('.e-collision').forEach((c,k)=>c.style.opacity=k<visible?(.28+.55*r/20).toFixed(2):'.08');let dur=Math.max(.8,7.5/(.7+Math.sqrt(i)*1.35));document.querySelectorAll('.chargeMotion').forEach((a,k)=>{a.setAttribute('dur',dur.toFixed(2)+'s');a.setAttribute('begin',(-dur*k/16).toFixed(2)+'s')})}function simWaves'''
+          s, n = re.subn(fn_pattern, fn, s, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit(f'simElectricity replacement failed: {n}')
+
+          p.write_text(s)
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "pelld"
+          git config user.email "5339514+pelld@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Explain voltage current and resistance visually"
+          git push
