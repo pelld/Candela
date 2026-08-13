@@ -1,0 +1,84 @@
+name: Electricity field model
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch Electricity experiment
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text()
+
+          css = r'''
+          /* Electricity: field + microscopic drift model */
+          .elecviz{height:270px;background:#f8fbff;box-shadow:inset 0 1px #fff9,0 7px 18px #14223c12}
+          .elecviz svg{display:block;width:100%;height:100%}
+          .e-wire{fill:none;stroke:#3157d5;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+          .e-resistor{fill:#fff;stroke:#3157d5;stroke-width:4}
+          .e-meter{fill:#fff;stroke:#3157d5;stroke-width:4}
+          .e-battery-line{stroke:#10223a;stroke-linecap:round}
+          .e-label{font:800 12px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#64748b;letter-spacing:.04em}
+          .e-value{font:900 17px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#10223a}
+          .e-current{font:900 24px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#10223a}
+          .e-sub{font:750 11px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#64748b}
+          .e-field{stroke:#7899ff;stroke-linecap:round;transition:opacity .18s,stroke-width .18s}
+          .e-cross{stroke:#0f172a;stroke-width:2}
+          .e-cross-label{font:900 12px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#0f172a}
+          .e-lattice{fill:#cdd6e1}
+          .e-electron{fill:#e04b3f}
+          .e-drift-arrow{stroke:#16a34a;stroke-width:2.5;stroke-linecap:round;transition:opacity .18s,stroke-width .18s}
+          .e-collision{fill:#d28a13;opacity:.12;transition:opacity .18s}
+          .electric-chain{display:grid;gap:6px;margin-top:10px}
+          .electric-chain-row{display:grid;grid-template-columns:82px 1fr;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:.75rem}
+          .electric-chain-row span{font-size:.64rem;font-weight:900;color:var(--muted);letter-spacing:.04em}
+          .electric-chain-row strong{font-size:.78rem}
+          .electric-equation{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:9px;padding:9px;border-radius:11px;background:#f4f7ff;font-weight:850;color:#2546b1}
+          .electric-note{margin-top:8px;color:var(--muted);font-size:.72rem;line-height:1.35}
+          @media(max-width:760px){.elecviz{height:270px}.electric-chain-row{grid-template-columns:74px 1fr;padding:7px 8px}}
+          '''
+
+          if 'Electricity: field + microscopic drift model' not in s:
+              s = s.replace('</style>', css + '</style>')
+
+          block = r''' }else if(topic==='electricity'){content.innerHTML=`<div class="muted">2 · EXPERIMENT</div><div class="question">Change voltage and resistance. See the cause, not just the result.</div><div class="controls"><div class="control"><label>Voltage <span id="vv">12 V</span></label><input id="volt" type="range" min="1" max="24" value="12" oninput="simElectricity()"></div><div class="control"><label>Resistance <span id="rr">4 Ω</span></label><input id="resist" type="range" min="1" max="20" value="4" oninput="simElectricity()"></div></div><div class="sim elecviz"><svg viewBox="0 0 420 270" aria-label="Circuit showing electric field, current at one cross-section, and electron drift in a magnified resistor"><defs><marker id="fieldArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#7899ff"/></marker><marker id="driftArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#16a34a"/></marker></defs><path class="e-wire" d="M76 42 H344 Q370 42 370 68 V148 Q370 174 344 174 H76 Q50 174 50 148 V68 Q50 42 76 42 Z"/><line class="e-field" x1="92" y1="42" x2="132" y2="42" marker-end="url(#fieldArrow)"/><line class="e-field" x1="288" y1="42" x2="328" y2="42" marker-end="url(#fieldArrow)"/><line class="e-field" x1="370" y1="82" x2="370" y2="122" marker-end="url(#fieldArrow)"/><line class="e-field" x1="328" y1="174" x2="288" y2="174" marker-end="url(#fieldArrow)"/><line class="e-field" x1="132" y1="174" x2="92" y2="174" marker-end="url(#fieldArrow)"/><rect x="151" y="19" width="118" height="47" rx="10" fill="#f8fbff"/><rect class="e-resistor" x="159" y="25" width="102" height="34" rx="8"/><text class="e-label" x="210" y="38" text-anchor="middle">RESISTOR</text><text id="resistorRead" class="e-value" x="210" y="54" text-anchor="middle">4 Ω</text><g id="collisionGroup"><circle class="e-collision" cx="171" cy="43" r="4"/><circle class="e-collision" cx="181" cy="43" r="4"/><circle class="e-collision" cx="191" cy="43" r="4"/><circle class="e-collision" cx="201" cy="43" r="4"/><circle class="e-collision" cx="211" cy="43" r="4"/><circle class="e-collision" cx="221" cy="43" r="4"/><circle class="e-collision" cx="231" cy="43" r="4"/><circle class="e-collision" cx="241" cy="43" r="4"/><circle class="e-collision" cx="251" cy="43" r="4"/></g><rect x="28" y="76" width="48" height="64" rx="8" fill="#f8fbff"/><line class="e-battery-line" x1="40" y1="90" x2="68" y2="90" stroke-width="5"/><line class="e-battery-line" x1="46" y1="116" x2="62" y2="116" stroke-width="3"/><text class="e-label" x="88" y="92">BATTERY</text><text id="batteryRead" class="e-value" x="88" y="112">12 V</text><text class="e-sub" x="88" y="128">potential difference</text><circle class="e-meter" cx="210" cy="174" r="23"/><text class="e-value" x="210" y="180" text-anchor="middle">A</text><text class="e-label" x="210" y="92" text-anchor="middle">CURRENT</text><text id="currentRead" class="e-current" x="210" y="118" text-anchor="middle">3.00 A</text><text id="chargeRateRead" class="e-sub" x="210" y="136" text-anchor="middle">3.00 C passes each second</text><line class="e-cross" x1="305" y1="147" x2="305" y2="201"/><text class="e-cross-label" x="313" y="201">measure here</text><rect x="96" y="194" width="228" height="58" rx="10" fill="#fff" stroke="#dbe3ec"/><text class="e-label" x="108" y="208">MAGNIFIED RESISTOR</text><text id="driftRead" class="e-sub" x="108" y="221">electrons jiggle randomly + tiny drift ←</text><g><circle class="e-lattice" cx="125" cy="234" r="7"/><circle class="e-lattice" cx="160" cy="234" r="7"/><circle class="e-lattice" cx="195" cy="234" r="7"/><circle class="e-lattice" cx="230" cy="234" r="7"/><circle class="e-lattice" cx="265" cy="234" r="7"/><circle class="e-lattice" cx="300" cy="234" r="7"/><circle class="e-lattice" cx="142" cy="246" r="7"/><circle class="e-lattice" cx="177" cy="246" r="7"/><circle class="e-lattice" cx="212" cy="246" r="7"/><circle class="e-lattice" cx="247" cy="246" r="7"/><circle class="e-lattice" cx="282" cy="246" r="7"/></g><g id="electronGroup"><circle class="e-electron" cx="130" cy="221" r="3.5"/><circle class="e-electron" cx="152" cy="243" r="3.5"/><circle class="e-electron" cx="181" cy="224" r="3.5"/><circle class="e-electron" cx="205" cy="244" r="3.5"/><circle class="e-electron" cx="236" cy="222" r="3.5"/><circle class="e-electron" cx="258" cy="244" r="3.5"/><circle class="e-electron" cx="286" cy="223" r="3.5"/></g><line class="e-drift-arrow" id="d1" x1="302" y1="224" x2="278" y2="224" marker-end="url(#driftArrow)"/><line class="e-drift-arrow" id="d2" x1="302" y1="244" x2="286" y2="244" marker-end="url(#driftArrow)"/></svg></div><div class="electric-chain"><div class="electric-chain-row"><span>VOLTAGE</span><strong id="voltageWhy">12 V — potential difference establishes the electric field</strong></div><div class="electric-chain-row"><span>RESISTANCE</span><strong id="resistanceWhy">4 Ω — opposition/scattering in the resistor</strong></div><div class="electric-chain-row"><span>CURRENT</span><strong id="currentWhy">3.00 A — 3.00 C passes the cross-section each second</strong></div></div><div class="electric-equation" id="sr">12 V ÷ 4 Ω = 3.00 A</div><div class="electric-note">No stream of particles travels round the circuit. The field is established around the circuit; electrons are already present throughout the metal. The inset magnifies their random motion plus a very small overall drift opposite to conventional current.</div><div class="actions"><button class="btn" onclick="step=2;renderTopic()">Explain →</button></div>`;simElectricity()}else{content.innerHTML=`'''
+
+          pat = re.compile(r"\}else if\(topic==='electricity'\)\{content\.innerHTML=`.*?`;simElectricity\(\)\}else\{content\.innerHTML=`", re.S)
+          m = pat.search(s)
+          if not m:
+              raise SystemExit('Could not locate electricity experiment block')
+          s = s[:m.start()] + block + s[m.end():]
+
+          funcs = r'''let electronTicker=null;function simElectricity(){let v=+volt.value,r=+resist.value,i=v/r;vv.textContent=v+' V';rr.textContent=r+' Ω';batteryRead.textContent=v+' V';resistorRead.textContent=r+' Ω';currentRead.textContent=i.toFixed(2)+' A';chargeRateRead.textContent=i.toFixed(2)+' C passes each second';voltageWhy.textContent=v+' V — '+(v<8?'weaker':v<17?'moderate':'stronger')+' potential difference → '+(v<8?'weaker':v<17?'moderate':'stronger')+' field';resistanceWhy.textContent=r+' Ω — '+(r<7?'less':r<14?'moderate':'more')+' opposition/scattering';currentWhy.textContent=i.toFixed(2)+' A — '+i.toFixed(2)+' C passes the cross-section each second';sr.textContent=v+' V ÷ '+r+' Ω = '+i.toFixed(2)+' A';let push=v/24;document.querySelectorAll('.e-field').forEach(a=>{a.style.opacity=(.15+.85*push).toFixed(2);a.setAttribute('stroke-width',(1.2+3.2*push).toFixed(1))});let n=Math.max(1,Math.ceil(r/2.5));document.querySelectorAll('.e-collision').forEach((c,k)=>c.style.opacity=k<n?(.18+.62*r/20).toFixed(2):'.05');let drift=Math.max(.2,Math.min(1.6,i/3));document.querySelectorAll('.e-drift-arrow').forEach((a,k)=>{a.style.opacity=(.2+.7*Math.min(1,i/6)).toFixed(2);a.setAttribute('stroke-width',(1.5+drift).toFixed(1));let len=(k===0?24:16)*drift;a.setAttribute('x2',(302-len).toFixed(1))});startElectronJiggle(i,r)}function startElectronJiggle(current,resistance){if(electronTicker)cancelAnimationFrame(electronTicker);let nodes=[...document.querySelectorAll('#electronGroup .e-electron')],base=[[130,221],[152,243],[181,224],[205,244],[236,222],[258,244],[286,223]],bias=Math.min(1.1,current/5),jitter=Math.max(.8,2.4-resistance/14);function tick(){nodes.forEach((n,k)=>{let b=base[k],x=b[0]-Math.random()*bias+(Math.random()-.5)*jitter,y=b[1]+(Math.random()-.5)*jitter*1.8;n.setAttribute('cx',x.toFixed(2));n.setAttribute('cy',y.toFixed(2))});electronTicker=requestAnimationFrame(tick)}tick()}function simWaves()'''
+
+          fpat = re.compile(r"function simElectricity\(\)\{.*?\}function simWaves\(\)", re.S)
+          fm = fpat.search(s)
+          if not fm:
+              raise SystemExit('Could not locate simElectricity function')
+          s = s[:fm.start()] + funcs + s[fm.end():]
+
+          p.write_text(s)
+          PY
+
+      - name: Commit patched page
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Replace electricity stream with field and drift model"
+          git push
